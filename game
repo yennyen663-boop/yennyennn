@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Gắp Thú Bông - Khám Phá Màu Sắc Mỹ Thuật</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Tone.js for Sound Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+        }
+        .font-game {
+            font-family: 'Fredoka', cursive;
+        }
+        .arcade-container {
+            background: rgba(15, 23, 42, 0.85);
+            border: 4px solid #f59e0b;
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.4), inset 0 0 15px rgba(245, 158, 11, 0.2);
+            border-radius: 24px;
+        }
+        .machine-screen {
+            background: #090d16;
+            border: 3px solid #3b82f6;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .joystick-btn {
+            background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 6px 0 #991b1b, 0 10px 15px rgba(0, 0, 0, 0.4);
+            transition: all 0.1s ease;
+        }
+        .joystick-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #991b1b, 0 5px 10px rgba(0, 0, 0, 0.4);
+        }
+        .grab-btn {
+            background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 6px 0 #047857, 0 10px 15px rgba(0, 0, 0, 0.4);
+            transition: all 0.1s ease;
+        }
+        .grab-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #047857, 0 5px 10px rgba(0, 0, 0, 0.4);
+        }
+        .opt-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(30, 41, 59, 0.9);
+            border: 2px solid #475569;
+        }
+        .opt-card:hover {
+            transform: translateY(-2px);
+            border-color: #3b82f6;
+            background: rgba(51, 65, 85, 0.9);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.8)); }
+            50% { filter: drop-shadow(0 0 18px rgba(245, 158, 11, 1)); }
+        }
+        .glow-effect {
+            animation: pulse-glow 2s infinite;
+        }
+    </style>
+</head>
+<body class="p-2 md:p-6 flex flex-col items-center justify-center min-h-screen">
+
+    <!-- HEADER TITLE -->
+    <header class="text-center mb-4">
+        <h1 class="font-game text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 tracking-wider glow-effect mb-1">
+            <i class="fa-solid font-game fa-robot text-amber-400 mr-2"></i>MÁY GẮP THÚ MỸ THUẬT
+        </h1>
+        <p class="text-slate-300 text-sm md:text-base font-semibold">
+            Gắp trứng may mắn & Khám phá bí ẩn của <span class="text-blue-400 font-bold">Màu Xanh Dương</span> & <span class="text-yellow-400 font-bold">Màu Vàng</span>
+        </p>
+    </header>
+
+    <!-- MAIN GAME CONTAINER -->
+    <main class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- LEFT PANEL: CLAW MACHINE (CANVAS) -->
+        <section class="lg:col-span-6 arcade-container p-4 flex flex-col items-center">
+            
+            <!-- Machine Top Display -->
+            <div class="w-full flex justify-between items-center mb-3 px-2">
+                <div class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-full border border-amber-500/40">
+                    <i class="fa-solid fa-trophy text-yellow-400 text-sm"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider text-amber-300">Điểm: <span id="scoreText" class="text-white text-base">0</span>/4</span>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-full border border-blue-500/40">
+                    <i class="fa-solid fa-egg text-blue-400 text-sm"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider text-blue-300">Trứng còn lại: <span id="remainingText" class="text-white text-base">4</span></span>
+                </div>
+            </div>
+
+            <!-- Arcade Screen Container -->
+            <div class="machine-screen w-full relative aspect-[4/3] max-w-[450px]">
+                <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+                
+                <!-- Status Overlay Banner -->
+                <div id="canvasOverlay" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center transition-all duration-300">
+                    <i class="fa-solid fa-gamepad text-5xl text-amber-400 mb-3 animate-bounce"></i>
+                    <h2 class="font-game text-2xl font-bold text-amber-300 mb-2" id="overlayTitle">MÁY GẮP THÚ SẴN SÀNG</h2>
+                    <p class="text-sm text-slate-300 mb-4 max-w-xs" id="overlayDesc">Sử dụng nút bấm bên dưới để di chuyển cần gắp và gắp quả trứng chứa câu hỏi mỹ thuật!</p>
+                    <button id="startBtn" onclick="startGame()" class="grab-btn font-game text-lg px-8 py-3 rounded-xl font-bold text-white uppercase tracking-wider hover:brightness-110 active:scale-95">
+                        <i class="fa-solid fa-play mr-2"></i>BẮT ĐẦU CHƠI
+                    </button>
+                </div>
+            </div>
+
+            <!-- Arcade Controls -->
+            <div class="w-full max-w-[450px] mt-4 p-4 bg-slate-900/90 rounded-2xl border border-slate-700/80 flex flex-col gap-3">
+                <div class="text-center text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Bảng điều khiển máy gắp</div>
+                <div class="flex justify-between items-center gap-3">
+                    
+                    <!-- Left / Right Directional Buttons -->
+                    <div class="flex gap-2">
+                        <button onclick="moveClaw(-1)" id="btnLeft" class="joystick-btn w-14 h-14 rounded-xl flex items-center justify-center text-2xl text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </button>
+                        <button onclick="moveClaw(1)" id="btnRight" class="joystick-btn w-14 h-14 rounded-xl flex items-center justify-center text-2xl text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Grab Action Button -->
+                    <button onclick="triggerGrab()" id="btnGrab" class="grab-btn flex-1 h-14 rounded-xl font-game font-bold text-lg text-white uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-hand-holding-hand text-xl"></i> GẮP TRỨNG!
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL: QUESTION & EXTENDED ANALYSIS WORKSPACE -->
+        <section class="lg:col-span-6 flex flex-col gap-4">
+            
+            <!-- Default Placeholder / Waiting Screen -->
+            <div id="quizPlaceholder" class="arcade-container p-8 text-center flex flex-col items-center justify-center min-h-[420px]">
+                <div class="w-20 h-20 rounded-full bg-slate-800/80 border-2 border-amber-400/50 flex items-center justify-center mb-4 text-3xl text-amber-400 animate-pulse">
+                    <i class="fa-solid fa-lightbulb"></i>
+                </div>
+                <h3 class="font-game text-2xl font-bold text-amber-300 mb-2">Đang Chờ Gắp Trứng...</h3>
+                <p class="text-slate-300 text-sm max-w-md leading-relaxed">
+                    Hãy điều khiển cần gắp sang Trái/Phải và nhấn <span class="text-emerald-400 font-bold">GẮP TRỨNG</span> để mở câu hỏi thử thách kiến thức sắc màu!
+                </p>
+            </div>
+
+            <!-- Active Question Card -->
+            <div id="quizCard" class="arcade-container p-5 hidden flex-col gap-4">
+                
+                <!-- Question Header Banner -->
+                <div class="flex items-center justify-between border-b border-slate-700/80 pb-3">
+                    <span id="questionTag" class="px-3 py-1 rounded-full text-xs font-bold font-game uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        <i class="fa-solid fa-circle-question mr-1"></i>Câu hỏi 1
+                    </span>
+                    <span class="text-xs text-slate-400 font-semibold"><i class="fa-solid fa-shuffle text-blue-400 mr-1"></i>Đã xáo trộn ngẫu nhiên</span>
+                </div>
+
+                <!-- Question Text -->
+                <h3 id="questionText" class="font-game text-lg md:text-xl font-bold text-white leading-snug">
+                    Nội dung câu hỏi...
+                </h3>
+
+                <!-- Options List (A, B, C, D) -->
+                <div id="optionsContainer" class="flex flex-col gap-2.5 my-1">
+                    <!-- Dynamic rendering -->
+                </div>
+
+                <!-- Feedback & Extended Insights Section -->
+                <div id="feedbackBox" class="hidden flex-col gap-3 p-4 rounded-xl border transition-all duration-300">
+                    <div class="flex items-start gap-3">
+                        <div id="feedbackIcon" class="text-2xl mt-0.5"></div>
+                        <div class="flex-1">
+                            <h4 id="feedbackTitle" class="font-game font-bold text-base mb-1"></h4>
+                            <p id="feedbackDesc" class="text-xs md:text-sm leading-relaxed text-slate-200"></p>
+                        </div>
+                    </div>
+
+                    <!-- Extended Insights Box (Randomized Perspectives) -->
+                    <div id="extendedAnalysisBox" class="mt-2 pt-3 border-t border-slate-700/60 bg-slate-900/60 p-3.5 rounded-lg border border-amber-500/20">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-compass-drafting text-amber-400 text-sm"></i>
+                                <span class="font-game text-xs font-bold uppercase tracking-wider text-amber-300" id="insightTag">
+                                    Gợi Ý Mở Rộng
+                                </span>
+                            </div>
+                            <button onclick="rerollInsight()" title="Đổi gợi ý ngẫu nhiên khác" class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold transition flex items-center gap-1 border border-amber-500/40 active:scale-95">
+                                <i class="fa-solid fa-dice text-amber-400"></i> Đổi gợi ý mở rộng khác
+                            </button>
+                        </div>
+                        <p id="insightText" class="text-xs md:text-sm text-slate-300 leading-relaxed font-normal italic">
+                            <!-- Dynamic insight -->
+                        </p>
+                    </div>
+
+                    <!-- Next Question Button -->
+                    <button id="nextBtn" onclick="nextQuestion()" class="mt-2 w-full py-2.5 rounded-xl font-game font-bold text-sm bg-blue-600 hover:bg-blue-500 text-white uppercase tracking-wider transition active:scale-95 shadow-lg flex items-center justify-center gap-2">
+                        Tiếp tục gắp trứng <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Complete / Knowledge Hub Card -->
+            <div id="completionHub" class="arcade-container p-6 hidden flex-col items-center text-center">
+                <div class="w-20 h-20 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center mb-3 text-4xl text-amber-400 glow-effect">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <h3 class="font-game text-2xl font-bold text-amber-300 mb-1">XIN CHÚC MỪNG!</h3>
+                <p class="text-slate-300 text-sm mb-4">Bạn đã hoàn thành xuất sắc tất cả câu hỏi về màu sắc mỹ thuật!</p>
+
+                <!-- Knowledge Hub Summary Accordion -->
+                <div class="w-full text-left bg-slate-900/90 rounded-xl border border-slate-700/80 p-4 mb-4 space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar">
+                    <h4 class="font-game text-sm font-bold text-amber-400 uppercase tracking-wider border-b border-slate-700 pb-2">
+                        <i class="fa-solid fa-book-open mr-2"></i>Tổng Hợp Thư Viện Kiến Thức Mở Rộng
+                    </h4>
+
+                    <div class="text-xs space-y-2">
+                        <details class="bg-slate-800/60 p-2.5 rounded border border-slate-700/50 group">
+                            <summary class="font-bold text-blue-300 cursor-pointer hover:text-blue-200 flex justify-between items-center">
+                                1. Cảm xúc Mỹ thuật: Xanh Dương & Vàng
+                                <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition"></i>
+                            </summary>
+                            <p class="mt-2 text-slate-300 leading-relaxed border-t border-slate-700/50 pt-2">
+                                • <b>Xanh Dương:</b> Bình yên, trầm lắng, mộng mơ, kiên định. <i>(Ví dụ: Thời kỳ Xanh của Picasso, áo Đức Mẹ thời Phục Hưng)</i>.<br>
+                                • <b>Màu Vàng:</b> Rực rỡ, năng lượng, hy vọng, thức tỉnh. <i>(Ví dụ: Hoa Hướng Dương của Van Gogh)</i>.
+                            </p>
+                        </details>
+
+                        <details class="bg-slate-800/60 p-2.5 rounded border border-slate-700/50 group">
+                            <summary class="font-bold text-yellow-300 cursor-pointer hover:text-yellow-200 flex justify-between items-center">
+                                2. Biểu tượng Tự nhiên
+                                <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition"></i>
+                            </summary>
+                            <p class="mt-2 text-slate-300 leading-relaxed border-t border-slate-700/50 pt-2">
+                                Sắc xanh & vàng tượng trưng cho sự giao thoa vũ trụ: Bầu trời & Ánh nắng, Biển cả & Bờ cát vàng, Đêm sao đêm mộng mị, Cánh đồng hoa hướng dương dưới nắng thu.
+                            </p>
+                        </details>
+
+                        <details class="bg-slate-800/60 p-2.5 rounded border border-slate-700/50 group">
+                            <summary class="font-bold text-emerald-300 cursor-pointer hover:text-emerald-200 flex justify-between items-center">
+                                3. Hiệu ứng Tương phản Thị giác
+                                <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition"></i>
+                            </summary>
+                            <p class="mt-2 text-slate-300 leading-relaxed border-t border-slate-700/50 pt-2">
+                                <b>Màu Vàng</b> luôn nổi bật hơn do có độ phản quang/độ sáng (Luminance) cao nhất và tính chất màu nóng (tải tiến về phía trước), trong khi màu xanh trầm lạnh lùi về sau làm nền đẩy màu vàng bứt phá.
+                            </p>
+                        </details>
+
+                        <details class="bg-slate-800/60 p-2.5 rounded border border-slate-700/50 group">
+                            <summary class="font-bold text-purple-300 cursor-pointer hover:text-purple-200 flex justify-between items-center">
+                                4. Nguyên lý Pha màu & Sắc độ
+                                <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition"></i>
+                            </summary>
+                            <p class="mt-2 text-slate-300 leading-relaxed border-t border-slate-700/50 pt-2">
+                                Xanh Dương + Vàng = <b>Xanh Lá Cây (Secondary Color)</b>.<br>
+                                • Tỷ lệ nhiều Vàng $\rightarrow$ Xanh đọt chuối/Warm Green (Tươi trẻ, mầm sống).<br>
+                                • Tỷ lệ nhiều Xanh $\rightarrow$ Xanh ngọc bích/Cool Green (Trầm tĩnh, bí ẩn).
+                            </p>
+                        </details>
+                    </div>
+                </div>
+
+                <!-- Replay Button -->
+                <button onclick="startGame()" class="grab-btn font-game px-8 py-3 rounded-xl font-bold text-white uppercase tracking-wider hover:brightness-110 active:scale-95 shadow-xl flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> Chơi Lượt Mới (Random Tráo Câu Hỏi)
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="mt-6 text-center text-xs text-slate-400 font-semibold">
+        <p>© Mini Game Mỹ Thuật Interative • Thiết kế tối ưu nhúng Canva & Bài giảng tương tác</p>
+    </footer>
+
+    <!-- SCRIPT SECTION -->
+    <script>
+        /* ==========================================================================
+           1. DATA BANK WITH RANDOMIZED EXTENDED INSIGHTS
+           ========================================================================== */
+        const originalQuestionsData = [
+            {
+                id: 1,
+                question: "Theo bạn, màu xanh dương và màu vàng tượng trưng cho những cảm xúc gì trong mỹ thuật?",
+                options: [
+                    { text: "Xanh: Bình yên, ưu tư / Vàng: Rực rỡ, hy vọng & năng lượng", correct: true },
+                    { text: "Xanh: Giận dữ / Vàng: Buồn bã, cô đơn", correct: false },
+                    { text: "Xanh: Sợ hãi / Vàng: Trầm lặng, u tối", correct: false },
+                    { text: "Cả hai màu đều chỉ thể hiện cảm xúc lạnh lẽo, xa cách", correct: false }
+                ],
+                explanation: "Màu xanh dương mang lại cảm xúc thanh tĩnh, mộng mơ nhưng đôi khi u trầm; trong khi màu vàng bùng nổ năng lượng, sự ấm áp và khát khao.",
+                insights: [
+                    "🎨 <b>Góc nhìn Danh họa:</b> Pablo Picasso có 'Thời kỳ Xanh' (Blue Period) dùng sắc xanh diễn tả nỗi u buồn cô độc. Tương tự, Vincent van Gogh đã dùng sắc vàng rực rỡ trong bức 'Hoa Hướng Dương' để bộc lộ khao khát sống cuồng nhiệt.",
+                    "🧠 <b>Góc nhìn Tâm lý học:</b> Màu xanh dương giúp hạ nhịp tim và đem lại sự an tâm sâu lắng. Trái lại, màu vàng kích thích trí não sản sinh serotonin, tạo cảm giác thức tỉnh và sáng tạo bứt phá.",
+                    "🏛️ <b>Góc nhìn Lịch sử Mỹ thuật:</b> Thời Phục Hưng, màu xanh Ultramarine quý giá hơn cả vàng, thường chỉ dành riêng để vẽ áo Mẹ Maria tượng trưng cho sự thuần khiết thiêng liêng."
+                ]
+            },
+            {
+                id: 2,
+                question: "Khi nhắc đến màu xanh dương và màu vàng, bạn thường liên tưởng đến hình ảnh nào trong tự nhiên?",
+                options: [
+                    { text: "Bầu trời xanh - Ánh nắng vàng / Bãi cát vàng - Biển xanh", correct: true },
+                    { text: "Ngọn núi tuyết trắng - Rừng cây u tối", correct: false },
+                    { text: "Dòng dung nhám đỏ - Đầm lầy u ám", correct: false },
+                    { text: "Cánh đồng tuyết trắng - Bầu trời xám xịt", correct: false }
+                ],
+                explanation: "Xanh dương và Vàng là hai gam màu biểu trưng kinh điển cho cảnh quan tự nhiên hùng vĩ và tràn đầy sức sống.",
+                insights: [
+                    "🌌 <b>Góc nhìn Vũ trụ & Thiên nhiên:</b> Hai màu này thể hiện sự tương phản nhịp nhàng giữa bao la tĩnh lặng (Bầu trời/Biển cả xanh) và nguồn năng lượng tạo ra sự sống (Ánh nắng/Mặt trời vàng).",
+                    "🌻 <b>Góc nhìn Bối cảnh Không gian:</b> Hãy hình dung cánh đồng hoa hướng dương vàng óng trải dài dưới bầu trời thu xanh trong - một phối cảnh thiên nhiên chuẩn mực về độ cân bằng màu sắc.",
+                    "🌕 <b>Góc nhìn Vũ trụ Đêm:</b> Đó còn là hình ảnh ánh trăng rằm hoặc các vì sao sáng vàng điểm xuyết trên nền bầu trời đêm xanh thẫm mộng mị."
+                ]
+            },
+            {
+                id: 3,
+                question: "Màu nào tạo cảm giác nổi bật hơn khi đặt màu xanh dương và màu vàng cạnh nhau?",
+                options: [
+                    { text: "Màu Vàng (Do độ sáng cao và tính chất màu nóng bứt phá)", correct: true },
+                    { text: "Màu Xanh Dương (Do màu xanh luôn lấn át màu vàng)", correct: false },
+                    { text: "Cả hai màu bị chìm và hòa lẫn vào nhau", correct: false },
+                    { text: "Không màu nào nổi bật vì độ phản quang như nhau", correct: false }
+                ],
+                explanation: "Màu vàng có độ phản quang (Luminance) cao nhất trong các màu, khi đặt cạnh nền xanh trầm sẽ lập tức bứt phá lên phía trước.",
+                insights: [
+                    "👁️ <b>Góc nhìn Quang học & Thị giác:</b> Màu vàng là 'màu tiến' (Advancing color) lao về mắt người xem, trong khi màu xanh là 'màu lùi' (Receding color) lùi sâu về hậu cảnh.",
+                    "📐 <b>Góc nhìn Thiết kế Đồ họa:</b> Do sự tương phản cực mạnh này, cặp màu Vàng - Xanh Dương rất ưa chuộng trong thiết kế logo thương hiệu nổi tiếng (IKEA, Visa, Pokémon) để gây chú ý tức thì.",
+                    "🎨 <b>Góc nhìn Nguyên lý Tương phản:</b> Màu xanh đóng vai trò như một bức đệm tĩnh, làm bệ phóng giúp sắc vàng tỏa sáng rực rỡ nhất có thể."
+                ]
+            },
+            {
+                id: 4,
+                question: "Khi pha trộn màu xanh dương với màu vàng theo lý thuyết màu sắc, ta sẽ thu được màu gì?",
+                options: [
+                    { text: "Màu Xanh Lá Cây (Green)", correct: true },
+                    { text: "Màu Tím (Violet)", correct: false },
+                    { text: "Màu Cam (Orange)", correct: false },
+                    { text: "Màu Nâu xám (Brown)", correct: false }
+                ],
+                explanation: "Xanh dương và Vàng là 2 màu gốc (Primary Colors). Khi pha trộn với nhau, chúng tạo ra màu Xanh Lá Cây - màu Cấp 2 (Secondary Color).",
+                insights: [
+                    "🍃 <b>Góc nhìn Sắc độ & Tỷ lệ:</b> Nếu pha nhiều Vàng hơn Xanh $\rightarrow$ thu được Xanh Đọt Chuối / Warm Green (tươi trẻ, mầm sống). Nếu nhiều Xanh hơn Vàng $\rightarrow$ thu được Xanh Ngọc Bích / Forest Green (trầm cổ, bí ẩn).",
+                    "🌱 <b>Góc nhìn Biểu tượng Tâm hồn:</b> Sự kết hợp giữa cái tĩnh trí tuệ (Xanh) và cái động năng lượng (Vàng) sinh ra Màu Xanh Lá - biểu tượng của sự tái sinh, chữa lành và sinh sôi.",
+                    "🧪 <b>Góc nhìn Lý thuyết Màu hiện đại:</b> Trong bảng màu trừ (Subtractive Color Model), đây là nền tảng nguyên lý cơ bản nhất để những họa sĩ phối trộn ra vô số sắc độ tự nhiên."
+                ]
+            }
+        ];
+
+        /* ==========================================================================
+           2. GAME STATE & VARIABLES
+           ========================================================================== */
+        let activeQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let activeInsightIndex = 0;
+        let isGameRunning = false;
+        let isGrabbing = false;
+        let currentEggGrabbed = null;
+
+        // Canvas Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let canvasWidth = 450;
+        let canvasHeight = 338;
+
+        // Physical Claw Machine Entities
+        let claw = {
+            x: 225,
+            y: 50,
+            width: 40,
+            height: 30,
+            state: 'IDLE', // IDLE, DROPPING, GRABBING, RETURNING
+            speed: 3,
+            grabTargetY: 260
+        };
+
+        let eggs = [];
+        const eggColors = [
+            { bg: '#3b82f6', border: '#60a5fa', text: '#ffffff' },
+            { bg: '#eab308', border: '#fde047', text: '#000000' },
+            { bg: '#10b981', border: '#34d399', text: '#ffffff' },
+            { bg: '#a855f7', border: '#c084fc', text: '#ffffff' }
+        ];
+
+        /* ==========================================================================
+           3. SOUND EFFECTS (Tone.js)
+           ========================================================================== */
+        const synth = new Tone.Synth().toDestination();
+        
+        function playSound(type) {
+            try {
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                if (type === 'move') {
+                    synth.triggerAttackRelease("C4", "8n");
+                } else if (type === 'grab') {
+                    synth.triggerAttackRelease("G3", "8n");
+                } else if (type === 'correct') {
+                    const now = Tone.now();
+                    synth.triggerAttackRelease("E5", "8n", now);
+                    synth.triggerAttackRelease("G5", "8n", now + 0.15);
+                } else if (type === 'wrong') {
+                    synth.triggerAttackRelease("C3", "4n");
+                }
+            } catch (e) {
+                // Audio fallback
+            }
+        }
+
+        /* ==========================================================================
+           4. UTILITY: FISHER-YATES RANDOM SHUFFLE
+           ========================================================================== */
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function prepareRandomGameData() {
+            // Shuffle questions order
+            activeQuestions = shuffleArray(originalQuestionsData).map(q => {
+                // Shuffle options inside each question
+                return {
+                    ...q,
+                    options: shuffleArray(q.options)
+                };
+            });
+        }
+
+        /* ==========================================================================
+           5. CANVAS RENDER ENGINE
+           ========================================================================== */
+        function initCanvasSize() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            canvasWidth = canvas.width;
+            canvasHeight = canvas.height;
+            claw.grabTargetY = canvasHeight - 75;
+        }
+
+        function createEggs() {
+            eggs = [];
+            const count = activeQuestions.length;
+            const spacing = canvasWidth / (count + 1);
+            
+            for (let i = 0; i < count; i++) {
+                eggs.push({
+                    id: i,
+                    x: spacing * (i + 1),
+                    y: canvasHeight - 45,
+                    radius: 20,
+                    color: eggColors[i % eggColors.length],
+                    isGrabbed: false,
+                    isCollected: false
+                });
+            }
+        }
+
+        function drawClawMachine() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            <!-- Glass Reflection Background -->
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            <!-- Top Cable Rail -->
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(10, 30);
+            ctx.lineTo(canvasWidth - 10, 30);
+            ctx.stroke
